@@ -166,6 +166,15 @@ export default function HomePage() {
           <p className="text-muted-foreground">© 2024 RaiderClaim. Built for Texas Tech University Raiders.</p>
         </div>
       </footer>
+          {/* ElevenLabs Convai Widget - Fixed Bottom Right */}
+      <div
+        style={{ position: 'fixed', bottom: 24, right: 24, zIndex: 9999 }}
+        dangerouslySetInnerHTML={{
+          __html:
+            '<elevenlabs-convai agent-id="agent_1901k4393zgef249h0xngj83htha"></elevenlabs-convai>',
+        }}
+      />
+      <script src="https://unpkg.com/@elevenlabs/convai-widget-embed" async type="text/javascript"></script>
     </div>
   )
 }

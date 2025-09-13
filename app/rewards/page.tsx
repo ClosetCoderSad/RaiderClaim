@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+// Remove direct Solana RPC usage from frontend
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -25,6 +26,7 @@ export default function RewardsPage() {
   const [userPoints, setUserPoints] = useState(1250) // Placeholder balance
   const [walletConnected, setWalletConnected] = useState(false)
   const [walletAddress, setWalletAddress] = useState("")
+  const [walletBalance, setWalletBalance] = useState<number | null>(null)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [selectedCategory, setSelectedCategory] = useState("all")
   const router = useRouter()
@@ -107,13 +109,12 @@ export default function RewardsPage() {
 
   const connectWallet = async () => {
     try {
-      // Mock wallet connection - in real implementation, use Solana wallet adapter
-      if (typeof window !== "undefined" && (window as any).solana) {
-        // Simulate wallet connection
+      if (typeof window !== "undefined" && (window as any).solana && (window as any).solana.isPhantom) {
+        const resp = await (window as any).solana.connect()
         setWalletConnected(true)
-        setWalletAddress("9WzDXwBbmkg8ZTbNMqUxvQRAyrZzDsGYdLVL9zYtAWWM") // Mock address
+        setWalletAddress(resp.publicKey.toString())
       } else {
-        alert("Please install a Solana wallet like Phantom to connect")
+        alert("Please install the Phantom wallet extension to connect your Solana wallet.")
       }
     } catch (error) {
       console.error("Wallet connection failed:", error)
@@ -123,7 +124,27 @@ export default function RewardsPage() {
   const disconnectWallet = () => {
     setWalletConnected(false)
     setWalletAddress("")
+    setWalletBalance(null)
   }
+  // Fetch wallet balance from backend API when connected
+  useEffect(() => {
+    const fetchBalance = async () => {
+      if (walletConnected && walletAddress) {
+        try {
+          const res = await fetch(`/api/solana-balance?address=${walletAddress}`)
+          const data = await res.json()
+          if (data.balance !== undefined) {
+            setWalletBalance(data.balance)
+          } else {
+            setWalletBalance(null)
+          }
+        } catch (err) {
+          setWalletBalance(null)
+        }
+      }
+    }
+    fetchBalance()
+  }, [walletConnected, walletAddress])
 
   const redeemReward = (reward: Reward) => {
     if (userPoints >= reward.pointsCost && reward.available) {
@@ -199,6 +220,9 @@ export default function RewardsPage() {
                     </div>
                     <div className="text-sm font-mono bg-muted p-2 rounded text-center">
                       {walletAddress.slice(0, 8)}...{walletAddress.slice(-8)}
+                    </div>
+                    <div className="text-sm text-center mb-2">
+                      Balance: {walletBalance !== null ? `${walletBalance.toFixed(4)} SOL` : "Loading..."}
                     </div>
                     <Button variant="outline" onClick={disconnectWallet} className="w-full bg-transparent">
                       Disconnect Wallet
