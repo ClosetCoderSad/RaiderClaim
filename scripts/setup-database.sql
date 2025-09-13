@@ -1,0 +1,53 @@
+-- MongoDB collections will be created automatically
+-- This file documents the expected schema structure
+
+-- Users Collection
+-- {
+--   _id: ObjectId,
+--   email: string,
+--   password: string (hashed),
+--   studentId: string,
+--   name: string,
+--   createdAt: Date
+-- }
+
+-- Posts Collection (Community Posts)
+-- {
+--   _id: ObjectId,
+--   userId: ObjectId,
+--   itemName: string,
+--   description: string,
+--   imageUrl: string,
+--   hashtags: string[],
+--   studentId: string,
+--   createdAt: Date
+-- }
+
+-- MapPins Collection
+-- {
+--   _id: ObjectId,
+--   userId: ObjectId,
+--   itemName: string,
+--   description: string,
+--   latitude: number,
+--   longitude: number,
+--   createdAt: Date
+-- }
+
+-- Rewards Collection
+-- {
+--   _id: ObjectId,
+--   name: string,
+--   pointsCost: number,
+--   description: string,
+--   imageUrl: string,
+--   available: boolean
+-- }
+
+-- UserRewards Collection
+-- {
+--   _id: ObjectId,
+--   userId: ObjectId,
+--   rewardId: ObjectId,
+--   redeemedAt: Date
+-- }
