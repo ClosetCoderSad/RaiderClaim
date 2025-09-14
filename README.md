@@ -36,6 +36,3 @@ cd RaiderClaim
 npm install
 npm run dev
 ```
-enter your own huggingface tokens when required
-```
-
