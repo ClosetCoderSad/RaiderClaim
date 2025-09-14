@@ -1,184 +1,175 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Badge } from "@/components/ui/badge"
-import { Navbar } from "@/components/navbar"
-import { ImageUpload } from "@/components/image-upload"
-import { Users, Plus, Search, Hash, Calendar, User } from "lucide-react"
-import Image from "next/image"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Navbar } from "@/components/navbar";
+import { ImageUpload } from "@/components/image-upload";
+import { Users, Plus, Search, Hash, Calendar, User } from "lucide-react";
+import Image from "next/image";
 
 interface Post {
-  _id: string
-  itemName: string
-  description: string
-  hashtags: string[]
-  imageUrl?: string
-  studentId: string
-  createdAt: string
+  _id: string;
+  itemName: string;
+  description: string;
+  hashtags: string[];
+  imageUrl?: string;
+  studentId: string;
+  createdAt: string;
   user: {
-    name: string
-  }
+    name: string;
+  };
 }
 
 export default function CommunityPage() {
-  // Mockup lost items
-  const mockupItems: Post[] = [
-    {
-      _id: "mock1",
-      itemName: "Red Backpack",
-      description: "Lost near the library. Contains textbooks and a water bottle.",
-      hashtags: ["backpack", "library"],
-      imageUrl: "/placeholder-logo.png",
-      studentId: "R12345678",
-      createdAt: new Date().toISOString(),
-      user: { name: "John Doe" },
-    },
-    {
-      _id: "mock2",
-      itemName: "iPhone 13",
-      description: "Black iPhone 13 lost in the cafeteria.",
-      hashtags: ["electronics", "phone"],
-      imageUrl: "/placeholder-user.jpg",
-      studentId: "R87654321",
-      createdAt: new Date().toISOString(),
-      user: { name: "Jane Smith" },
-    },
-    {
-      _id: "mock3",
-      itemName: "Keys",
-      description: "Bunch of keys with a red keychain lost in parking lot.",
-      hashtags: ["keys", "parking"],
-      imageUrl: "/placeholder.jpg",
-      studentId: "R11223344",
-      createdAt: new Date().toISOString(),
-      user: { name: "Alex Lee" },
-    },
-  ];
-  const [posts, setPosts] = useState<Post[]>([])
-  const [showCreateForm, setShowCreateForm] = useState(false)
-  const [searchTerm, setSearchTerm] = useState("")
-  const [loading, setLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const router = useRouter()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const reportedItemId = searchParams.get("reportedItemId");
+  const reportedLat = searchParams.get("latitude");
+  const reportedLng = searchParams.get("longitude");
 
-  // Form state
+  const [reportedItems, setReportedItems] = useState<{
+    [key: string]: { latitude: number; longitude: number };
+  }>({});
+
+  useEffect(() => {
+    // Fetch reported pins for items
+    const fetchPins = async () => {
+      try {
+        const response = await fetch("/api/pins");
+        if (response.ok) {
+          const pins = await response.json();
+          const reported: { [key: string]: { latitude: number; longitude: number } } = {};
+          pins.forEach((pin: any) => {
+            if (pin.itemId && pin.latitude && pin.longitude) {
+              reported[pin.itemId] = {
+                latitude: pin.latitude,
+                longitude: pin.longitude,
+              };
+            }
+          });
+          setReportedItems(reported);
+        }
+      } catch {
+        // ignore errors
+      }
+    };
+    fetchPins();
+  }, []);
+
+  // Update reportedItems if redirected from Report page
+  useEffect(() => {
+    if (reportedItemId && reportedLat && reportedLng) {
+      setReportedItems((prev) => ({
+        ...prev,
+        [reportedItemId]: {
+          latitude: Number(reportedLat),
+          longitude: Number(reportedLng),
+        },
+      }));
+    }
+  }, [reportedItemId, reportedLat, reportedLng]);
+
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+
   const [formData, setFormData] = useState({
     itemName: "",
     description: "",
     hashtags: "",
     imageUrl: "",
-  })
-  const [formError, setFormError] = useState("")
-  const [formLoading, setFormLoading] = useState(false)
+  });
+  const [formError, setFormError] = useState("");
+  const [formLoading, setFormLoading] = useState(false);
 
   useEffect(() => {
-    // Check authentication
-    const token = localStorage.getItem("token")
+    const token = localStorage.getItem("token");
     if (!token) {
-      router.push("/login")
-      return
+      router.push("/login");
+      return;
     }
-    setIsAuthenticated(true)
-    fetchPosts()
-  }, [router])
+    setIsAuthenticated(true);
+    fetchPosts();
+  }, [router]);
 
   const fetchPosts = async () => {
     try {
-      const response = await fetch("/api/posts")
+      const response = await fetch("/api/posts");
       if (response.ok) {
-        const data = await response.json()
-        setPosts(data)
+        const data = await response.json();
+        setPosts(data);
       }
     } catch (error) {
-      console.error("Error fetching posts:", error)
+      console.error("Error fetching posts:", error);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
-  }
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const handleImageUpload = (url: string) => {
-    setFormData({
-      ...formData,
-      imageUrl: url,
-    })
-  }
+    setFormData({ ...formData, imageUrl: url });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setFormError("")
-
+    e.preventDefault();
+    setFormError("");
     if (!formData.itemName || !formData.description) {
-      setFormError("Item name and description are required")
-      return
+      setFormError("Item name and description are required");
+      return;
     }
-
-    setFormLoading(true)
-
+    setFormLoading(true);
     try {
-      const token = localStorage.getItem("token")
-      const hashtags = formData.hashtags
-        .split(",")
-        .map((tag) => tag.trim())
-        .filter((tag) => tag.length > 0)
-
+      const token = localStorage.getItem("token");
+      const hashtags = formData.hashtags.split(",").map((tag) => tag.trim()).filter(Boolean);
       const response = await fetch("/api/posts", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          itemName: formData.itemName,
-          description: formData.description,
-          hashtags,
-          imageUrl: formData.imageUrl || null,
-        }),
-      })
-
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ ...formData, hashtags }),
+      });
       if (response.ok) {
-  const newPost = await response.json()
-  setPosts((prev) => [newPost, ...prev]) // instant UI update
-  setFormData({ itemName: "", description: "", hashtags: "", imageUrl: "" })
-  setShowCreateForm(false)
-} else {
-  const data = await response.json()
-  setFormError(data.error || "Failed to create post")
-}
-
-    } catch (error) {
-      setFormError("Network error. Please try again.")
+        const newPost = await response.json();
+        setPosts((prev) => [newPost, ...prev]);
+        setFormData({ itemName: "", description: "", hashtags: "", imageUrl: "" });
+        setShowCreateForm(false);
+      } else {
+        const data = await response.json();
+        setFormError(data.error || "Failed to create post");
+      }
+    } catch {
+      setFormError("Network error. Please try again.");
     } finally {
-      setFormLoading(false)
+      setFormLoading(false);
     }
-  }
+  };
 
-  const allItems = [...mockupItems, ...posts];
-  const filteredItems = allItems.filter(
+  const filteredItems = posts.filter(
     (item) =>
       item.itemName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.hashtags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase())),
+      item.hashtags.some((tag) => tag.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  if (!isAuthenticated) {
-    return null
-  }
+  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -188,7 +179,7 @@ export default function CommunityPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-balance">
-              <span className="text-accent">Raider</span> Community
+              <span>Raider</span> Community
             </h1>
             <p className="text-lg text-muted-foreground text-pretty">
               Share and discover lost items with your fellow Texas Tech Raiders
@@ -297,10 +288,10 @@ export default function CommunityPage() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredItems.map((item) => (
                 <Card key={item._id} className="bg-card/50 border-border flex flex-col">
-                  <CardContent className="p-4 flex flex-col">
+                  <CardContent className="p-4 flex flex-col break-words overflow-hidden">
                     <div className="flex items-start justify-between mb-4">
                       <div>
                         <h3 className="text-xl font-semibold mb-2">{item.itemName}</h3>
@@ -321,7 +312,7 @@ export default function CommunityPage() {
                     </div>
 
                     {item.imageUrl && (
-                      <div className="mb-2">
+                      <div className="mb-2 overflow-hidden rounded-lg">
                         <Image
                           src={item.imageUrl || "/placeholder.svg"}
                           alt={item.itemName}
@@ -345,7 +336,22 @@ export default function CommunityPage() {
                       </div>
                     )}
 
-                    <Button variant="outline" size="sm" onClick={() => router.push("/report")}>Report</Button>
+                    {reportedItems[item._id] ? (
+                      <Button variant="secondary" size="sm" disabled>
+                        Reported at location:{" "}
+                        <span className="ml-1 font-mono text-xs">
+                          {reportedItems[item._id].latitude.toFixed(4)},{reportedItems[item._id].longitude.toFixed(4)}
+                        </span>
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => router.push("/report?itemId=" + encodeURIComponent(item._id))}
+                      >
+                        Report
+                      </Button>
+                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -354,5 +360,5 @@ export default function CommunityPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }

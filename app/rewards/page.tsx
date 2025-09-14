@@ -22,6 +22,10 @@ interface Reward {
   icon: React.ReactNode
 }
 
+// Conversion rate: 0.010 SOL = 10 points
+const SOL_PER_POINT = 0.001;
+const POINTS_PER_SOL = 10;
+
 export default function RewardsPage() {
   const [userPoints, setUserPoints] = useState(1250) // Placeholder balance
   const [walletConnected, setWalletConnected] = useState(false)
@@ -180,25 +184,28 @@ export default function RewardsPage() {
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
                   <Coins className="w-5 h-5 text-accent" />
-                  <span>Your Points</span>
+                  <span>Your SOL</span>
                 </CardTitle>
-                <CardDescription>Points earned from community participation</CardDescription>
+                <CardDescription>SOL earned from community participation</CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold text-accent mb-4">{userPoints.toLocaleString()}</div>
+                <div className="text-3xl font-bold text-accent mb-4">{(userPoints * SOL_PER_POINT).toFixed(3)} SOL</div>
                 <div className="space-y-2 text-sm text-muted-foreground">
                   <div className="flex justify-between">
                     <span>Posts created:</span>
-                    <span>+50 pts each</span>
+                    <span>+0.010 SOL each</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Items found:</span>
-                    <span>+100 pts each</span>
+                    <span>+0.020 SOL each</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Community help:</span>
-                    <span>+25 pts each</span>
+                    <span>+0.025 SOL each</span>
                   </div>
+                </div>
+                <div className="mt-4 text-xs text-muted-foreground">
+                  <strong>Key:</strong> 0.010 SOL = 10 points
                 </div>
               </CardContent>
             </Card>
@@ -226,6 +233,18 @@ export default function RewardsPage() {
                     </div>
                     <Button variant="outline" onClick={disconnectWallet} className="w-full bg-transparent">
                       Disconnect Wallet
+                    </Button>
+                    <div className="mt-4">
+                      <span className="text-sm text-muted-foreground">
+                        You are eligible for reward points for reporting a lost item!
+                      </span>
+                    </div>
+                    <Button
+                      onClick={() => setWalletBalance((prev) => (prev !== null ? prev + 0.01 : 0.01))}
+                      disabled={!walletConnected}
+                      className="w-full mt-2"
+                    >
+                      Reward Point
                     </Button>
                   </div>
                 ) : (

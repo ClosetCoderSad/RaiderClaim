@@ -125,3 +125,22 @@
     @apply bg-background text-foreground;
   }
 }
+
+.text-neon-bluegreen {
+  color: #0fffc0; /* bright cyan-green */
+  text-shadow: 0 0 2px #0fffc0, 0 0 5px #0fffc0; /* smaller, subtle glow */
+}
+
+.text-neon-pink {
+  color: #ff6ec7; /* neon pink */
+  text-shadow: 0 0 2px #ff6ec7, 0 0 5px #ff6ec7; /* small glow */
+}
+
+.bg-neon-bluegreen {
+  background-color: #087c5d; /* bright cyan-green */
+  box-shadow: 0 0 2px #0fffc0, 0 0 5px #0fffc0; /* smaller, subtle glow */
+}
+
+.text-neon {
+  color: #087c5d; /* bright cyan-green */
+}

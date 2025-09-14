@@ -1,73 +1,94 @@
-"use client"
+"use client";
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Navbar } from "@/components/navbar"
-import { MapPin, Package } from "lucide-react"
-import dynamic from "next/dynamic"
+import type React from "react";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Navbar } from "@/components/navbar";
+import { MapPin, Package } from "lucide-react";
+import dynamic from "next/dynamic";
 
 // Dynamically import the map to avoid SSR issues
-const DynamicMapComponent = dynamic(() => import("@/components/map-component").then((mod) => mod.MapComponent), {
-  ssr: false,
-  loading: () => (
-    <div className="w-full h-96 bg-muted rounded-lg flex items-center justify-center">
-      <p className="text-muted-foreground">Loading map...</p>
-    </div>
-  ),
-})
+const DynamicMapComponent = dynamic(
+  () => import("@/components/map-component").then((mod) => mod.MapComponent),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="w-full h-96 bg-muted rounded-lg flex items-center justify-center">
+        <p className="text-muted-foreground">Loading map...</p>
+      </div>
+    ),
+  }
+);
+
+// Example mockupItems; replace with real fetch if needed
+const mockupItems = [
+  { _id: "mock1", itemName: "Red Backpack", description: "Lost near the library. Contains textbooks and a water bottle." },
+  { _id: "mock2", itemName: "iPhone 13", description: "Black iPhone 13 lost in the cafeteria." },
+  { _id: "mock3", itemName: "Keys", description: "Bunch of keys with a red keychain lost in parking lot." },
+];
 
 export default function ReportPage() {
-  const [itemName, setItemName] = useState("")
-  const [description, setDescription] = useState("")
-  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null)
-  const [error, setError] = useState("")
-  const [success, setSuccess] = useState("")
-  const [loading, setLoading] = useState(false)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const router = useRouter()
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const itemId = searchParams.get("itemId");
+
+  const [itemName, setItemName] = useState("");
+  const [description, setDescription] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
     // Check authentication
-    const token = localStorage.getItem("token")
+    const token = localStorage.getItem("token");
     if (!token) {
-      router.push("/login")
-      return
+      router.push("/login");
+      return;
     }
-    setIsAuthenticated(true)
-  }, [router])
+    setIsAuthenticated(true);
+
+    // Pre-fill item info if itemId exists
+    if (itemId) {
+      const item = mockupItems.find((i) => i._id === itemId);
+      if (item) {
+        setItemName(item.itemName);
+        setDescription(item.description);
+      }
+    }
+  }, [itemId, router]);
 
   const handleLocationSelect = (lat: number, lng: number) => {
-    setSelectedLocation({ lat, lng })
-    setError("")
-  }
+    setSelectedLocation({ lat, lng });
+    setError("");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setError("")
-    setSuccess("")
+    e.preventDefault();
+    setError("");
+    setSuccess("");
 
     if (!itemName || !description) {
-      setError("Please fill in all fields")
-      return
+      setError("Please fill in all fields");
+      return;
     }
 
     if (!selectedLocation) {
-      setError("Please select a location on the map")
-      return
+      setError("Please select a location on the map");
+      return;
     }
 
-    setLoading(true)
+    setLoading(true);
 
     try {
-      const token = localStorage.getItem("token")
+      const token = localStorage.getItem("token");
       const response = await fetch("/api/pins", {
         method: "POST",
         headers: {
@@ -75,36 +96,33 @@ export default function ReportPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          itemId, // <-- send itemId to link the report
           itemName,
           description,
           latitude: selectedLocation.lat,
           longitude: selectedLocation.lng,
         }),
-      })
+      });
 
-      const data = await response.json()
+      const data = await response.json();
 
       if (response.ok) {
-        setSuccess("Lost item reported successfully!")
-        setItemName("")
-        setDescription("")
-        setSelectedLocation(null)
+        setSuccess("Lost item reported successfully!");
         setTimeout(() => {
-          router.push("/community")
-        }, 2000)
+          // Redirect back to community page with reportedItemId so the button updates immediately
+          router.push("/community?reportedItemId=" + encodeURIComponent(itemId || ""));
+        }, 1500);
       } else {
-        setError(data.error || "Failed to report item")
+        setError(data.error || "Failed to report item");
       }
     } catch (error) {
-      setError("Network error. Please try again.")
+      setError("Network error. Please try again.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  if (!isAuthenticated) {
-    return null
-  }
+  if (!isAuthenticated) return null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -113,7 +131,7 @@ export default function ReportPage() {
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-3xl md:text-4xl font-bold mb-4 text-balance">
-              Report <span className="text-accent">Lost Item</span>
+              Report <span>Lost Item</span>
             </h1>
             <p className="text-lg text-muted-foreground text-pretty">
               Drop a pin on the map and provide details about your lost item
@@ -125,7 +143,7 @@ export default function ReportPage() {
             <Card className="bg-card/50 border-border">
               <CardHeader>
                 <CardTitle className="flex items-center space-x-2">
-                  <Package className="w-5 h-5 text-accent" />
+                  <Package className="w-5 h-5 text-violet-500" />
                   <span>Item Details</span>
                 </CardTitle>
                 <CardDescription>Provide information about your lost item</CardDescription>
@@ -197,7 +215,10 @@ export default function ReportPage() {
                 <CardDescription>Click on the map where you lost the item</CardDescription>
               </CardHeader>
               <CardContent>
-                <DynamicMapComponent onLocationSelect={handleLocationSelect} selectedLocation={selectedLocation} />
+                <DynamicMapComponent
+                  onLocationSelect={handleLocationSelect}
+                  selectedLocation={selectedLocation}
+                />
                 <p className="text-xs text-muted-foreground mt-2">
                   Click anywhere on the Texas Tech campus map to drop a pin
                 </p>
@@ -207,5 +228,5 @@ export default function ReportPage() {
         </div>
       </div>
     </div>
-  )
+  );
 }
